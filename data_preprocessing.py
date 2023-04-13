@@ -24,7 +24,9 @@ def preprocess_data(csv_file_path):
     # データの読み込み
     df = pd.read_csv(csv_file_path)
     
-    # 欠損値の処理（今回は欠損値がないため省略）
+    # 欠損値の処理
+    if df.isnull().values.any():
+        df = df.fillna(0) # 0で欠損値を補完n 
     
     # 特徴量の生成
     df = generate_features(df)
