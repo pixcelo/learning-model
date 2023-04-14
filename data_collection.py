@@ -1,69 +1,63 @@
+import os
 import ccxt
 import pandas as pd
-import datetime
-import os
-import logging
-
-# ログの設定
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-logger = logging.getLogger(__name__)
+from datetime import datetime, timedelta
 
 # 取引所の設定
 exchange = ccxt.bybit({
-    'rateLimit': 1200,
-    'enableRateLimit': True,
+    'apiKey': 'YOUR_API_KEY',
+    'secret': 'YOUR_SECRET_KEY',
 })
 
-def fetch_ohlcv_with_timeframe(exchange, symbol, timeframe, since, until):
-    all_candles = []
-    while since < until:
-        try:
-            candles = exchange.fetch_ohlcv(symbol, timeframe, since)
-        except ccxt.ExchangeError as e:
-            logger.error(f"Exchange error: {e}")
-            break
-        except ccxt.NetworkError as e:
-            logger.error(f"Network error: {e}")
-            break
+# 複数の時間足を取得するための関数
+def fetch_ohlcv_multiple_timeframes(exchange, symbol, timeframes, start_date, end_date):
+    data = {}
+    for timeframe in timeframes:
+        print(f"Fetching {symbol} {timeframe} data...")
+        data[timeframe] = exchange.fetch_ohlcv(symbol, timeframe, since=start_date, until=end_date)
+        print(f"{symbol} {timeframe} data fetched.")
+    return data
 
-        if len(candles) == 0:
-            break
-        since = candles[-1][0] + exchange.parse_timeframe(timeframe) * 1000
-        all_candles += candles
-    return all_candles
+# 精算情報を取得するための関数
+def fetch_liquidations(exchange, symbol, start_date, end_date):
+    print(f"Fetching {symbol} liquidations data...")
+    # 以下のAPIエンドポイントを利用して精算情報を取得します。
+    # ご利用の取引所によっては、別のエンドポイントを利用する必要がある場合があります。
+    # 公式ドキュメントを確認してください。
+    url = f'https://api.bybit.com/v2/public/liq-records?symbol={symbol}&from={start_date}&to={end_date}'
+    liquidations = pd.read_json(url)
+    print(f"{symbol} liquidations data fetched.")
+    return liquidations
 
-# 価格データの取得
-symbol = 'BTC/USDT'
-timeframe = '15m'
-start_date = '2021-08-01T00:00:00Z'
-end_date = '2021-12-31T00:00:00Z'
-since = exchange.parse8601(start_date)
-until = exchange.parse8601(end_date)
+# 日時をUNIXタイムスタンプに変換するための関数
+def to_unix_timestamp(date):
+    return int(date.timestamp() * 1000)
 
-ohlcv = fetch_ohlcv_with_timeframe(exchange, symbol, timeframe, since, until)
+# データをCSVファイルに保存するための関数
+def save_data_to_csv(data, file_name):
+    df = pd.DataFrame(data)
+    df.to_csv(file_name, index=False)
+    print(f"Data saved to {file_name}")
 
-# データが空でないことを確認
-if len(ohlcv) == 0:
-    logger.warning("No data fetched.")
-    exit()
+def collect_historical_data():
+    # 取得するデータの設定
+    symbol = 'BTC/USD'
+    timeframes = ['15m', '1h', '4h']
+    start_date = datetime(2021, 8, 1)
+    end_date = datetime(2021, 12, 31)
+    unix_start_date = to_unix_timestamp(start_date)
+    unix_end_date = to_unix_timestamp(end_date)
 
-# データフレームに変換
-df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-df['symbol'] = symbol
-df['timeframe'] = timeframe
+    # 複数の時間足のデータを取得
+    ohlcv_data = fetch_ohlcv_multiple_timeframes(exchange, symbol, timeframes, unix_start_date, unix_end_date)
 
-# ファイル名の作成
-symbol_name = symbol.replace("/", "")
-start_date_str = start_date[:10].replace("-", "")
-end_date_str = end_date[:10].replace("-", "")
-csv_file_name = f"{symbol_name}_{timeframe}_{start_date_str}_{end_date_str}.csv"
+    # 精算情報を取得
+    liquidations = fetch_liquidations(exchange, symbol, unix_start_date, unix_end_date)
 
-# 保存先フォルダを作成（存在しない場合）
-data_dir = 'data'
-if not os.path.exists(data_dir):
-    os.makedirs(data_dir)
+    # データをCSVファイルに保存
+    for timeframe in timeframes:
+        file_name = f'BTCUSD_{timeframe}_{start_date.strftime("%Y%m%d")}_{end_date.strftime("%Y%m%d")}.csv'
+        save_data_to_csv(ohlcv_data[timeframe], file_name)
 
-# CSVファイルに保存
-csv_file_path = os.path.join(data_dir, csv_file_name)
-df.to_csv(csv_file_path, index=False)
+if __name__ == '__main__':
+    collect_historical_data()
