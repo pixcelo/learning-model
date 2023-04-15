@@ -1,12 +1,21 @@
 import os
 import ccxt
 import pandas as pd
+import time
 from datetime import datetime, timedelta
+import configparser
 
-# 取引所の設定
+# 設定ファイルの読み込み
+config = configparser.ConfigParser()
+config.read('config.ini')
+
+# APIキーとシークレットキーの取得
+api_key = config.get('bybit', 'api_key')
+secret_key = config.get('bybit', 'secret_key')
+
 exchange = ccxt.bybit({
-    'apiKey': 'YOUR_API_KEY',
-    'secret': 'YOUR_SECRET_KEY',
+    'apiKey': api_key,
+    'secret': secret_key,
 })
 
 # 複数の時間足を取得するための関数
@@ -14,7 +23,15 @@ def fetch_ohlcv_multiple_timeframes(exchange, symbol, timeframes, start_date, en
     data = {}
     for timeframe in timeframes:
         print(f"Fetching {symbol} {timeframe} data...")
-        data[timeframe] = exchange.fetch_ohlcv(symbol, timeframe, since=start_date, until=end_date)
+        data[timeframe] = []
+        current_date = start_date
+        while current_date < end_date:
+            fetched_data = exchange.fetch_ohlcv(symbol, timeframe, since=current_date)
+            if len(fetched_data) == 0:
+                break
+            data[timeframe].extend(fetched_data)
+            current_date = fetched_data[-1][0] + exchange.parse_timeframe(timeframe) * 1000
+            time.sleep(exchange.rateLimit / 1000 * 2) # APIのレート制限に対応するための遅延処理
         print(f"{symbol} {timeframe} data fetched.")
     return data
 
@@ -36,12 +53,15 @@ def to_unix_timestamp(date):
 # データをCSVファイルに保存するための関数
 def save_data_to_csv(data, file_name):
     df = pd.DataFrame(data)
-    df.to_csv(file_name, index=False)
-    print(f"Data saved to {file_name}")
+    column_names = ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+    df.columns = column_names
+    file_path = os.path.join("data", file_name)
+    df.to_csv(file_path, index=False)
+    print(f"Data saved to {file_path}")
 
 def collect_historical_data():
     # 取得するデータの設定
-    symbol = 'BTC/USD'
+    symbol = 'BTC/USDT'
     timeframes = ['15m', '1h', '4h']
     start_date = datetime(2021, 8, 1)
     end_date = datetime(2021, 12, 31)
@@ -52,7 +72,7 @@ def collect_historical_data():
     ohlcv_data = fetch_ohlcv_multiple_timeframes(exchange, symbol, timeframes, unix_start_date, unix_end_date)
 
     # 精算情報を取得
-    liquidations = fetch_liquidations(exchange, symbol, unix_start_date, unix_end_date)
+    # liquidations = fetch_liquidations(exchange, symbol, unix_start_date, unix_end_date)
 
     # データをCSVファイルに保存
     for timeframe in timeframes:
