@@ -39,14 +39,14 @@ def feature_engineering(df, prefix):
 
 # ラベルデータ作成
 def create_label(df, prefix, lookahead=1):
-    df['target'] = (df[f'{prefix}_close'].shift(-lookahead) > df[f'{prefix}_close']).astype(int)
+    df[f'{prefix}_target'] = (df[f'{prefix}_close'].shift(-lookahead) > df[f'{prefix}_close']).astype(int)
     df = df.dropna()
-    return df.drop(f"{prefix}_close", axis=1)  # targetの重複を削除する
+    return df
 
 # 学習と評価
 def train_and_evaluate(df):
-    features = df.drop('target', axis=1)
-    labels = df['target']
+    features = df.drop('15m_target', axis=1)
+    labels = df['15m_target']
 
     X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=42)
 
