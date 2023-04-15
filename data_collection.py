@@ -18,6 +18,11 @@ exchange = ccxt.bybit({
     'secret': secret_key,
 })
 
+# カラム名にprefixを付与する関数
+def add_prefix_to_columns(df, prefix):
+    df.columns = [f'{prefix}_{column}' for column in df.columns]
+    return df
+
 # 複数の時間足を取得するための関数
 def fetch_ohlcv_multiple_timeframes(exchange, symbol, timeframes, start_date, end_date):
     data = {}
@@ -71,13 +76,18 @@ def collect_historical_data():
     # 複数の時間足のデータを取得
     ohlcv_data = fetch_ohlcv_multiple_timeframes(exchange, symbol, timeframes, unix_start_date, unix_end_date)
 
-    # 精算情報を取得
-    # liquidations = fetch_liquidations(exchange, symbol, unix_start_date, unix_end_date)
+    # データフレームに変換し、カラム名にprefixを付与
+    dfs = {}
+    for timeframe in timeframes:
+        dfs[timeframe] = pd.DataFrame(ohlcv_data[timeframe])
+        dfs[timeframe].columns = ['timestamp', 'open', 'high', 'low', 'close', 'volume']
+        dfs[timeframe] = add_prefix_to_columns(dfs[timeframe], timeframe)
 
     # データをCSVファイルに保存
     for timeframe in timeframes:
-        file_name = f'BTCUSD_{timeframe}_{start_date.strftime("%Y%m%d")}_{end_date.strftime("%Y%m%d")}.csv'
-        save_data_to_csv(ohlcv_data[timeframe], file_name)
+        file_name = f'BTCUSDT_{timeframe}_{start_date.strftime("%Y%m%d")}_{end_date.strftime("%Y%m%d")}.csv'
+        dfs[timeframe].to_csv(os.path.join("data", file_name), index=False)
+        print(f"Data saved to {file_name}")
 
 if __name__ == '__main__':
     collect_historical_data()
