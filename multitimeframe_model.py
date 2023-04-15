@@ -16,20 +16,20 @@ def load_data(file_names):
     return dfs
 
 # 特徴量エンジニアリング
-def feature_engineering(df):
-    open = df['open'].values
-    high = df['high'].values
-    low = df['low'].values
-    close = df['close'].values
-    volume = df['volume'].values
+def feature_engineering(df, prefix):
+    open = df[f'{prefix}_open'].values
+    high = df[f'{prefix}_high'].values
+    low = df[f'{prefix}_low'].values
+    close = df[f'{prefix}_close'].values
+    volume = df[f'{prefix}_volume'].values
 
     # TA-Libを使用して一般的なテクニカル指標を計算
-    df['RSI'] = talib.RSI(close)
-    df['MACD'], _, _ = talib.MACD(close)
-    df['ATR'] = talib.ATR(high, low, close)
-    df['ADX'] = talib.ADX(high, low, close)
-    df['SMA'] = talib.SMA(close)
-    df['BB_UPPER'], df['BB_MIDDLE'], df['BB_LOWER'] = talib.BBANDS(close)
+    df[f'{prefix}_RSI'] = talib.RSI(close)
+    df[f'{prefix}_MACD'], _, _ = talib.MACD(close)
+    df[f'{prefix}_ATR'] = talib.ATR(high, low, close)
+    df[f'{prefix}_ADX'] = talib.ADX(high, low, close)
+    df[f'{prefix}_SMA'] = talib.SMA(close)
+    df[f'{prefix}_BB_UPPER'], df[f'{prefix}_BB_MIDDLE'], df[f'{prefix}_BB_LOWER'] = talib.BBANDS(close)
 
     # 欠損値の削除
     df = df.dropna()
@@ -38,10 +38,10 @@ def feature_engineering(df):
     return df
 
 # ラベルデータ作成
-def create_label(df, lookahead=1):
-    df['target'] = (df['close'].shift(-lookahead) > df['close']).astype(int)
+def create_label(df, prefix, lookahead=1):
+    df['target'] = (df[f'{prefix}_close'].shift(-lookahead) > df[f'{prefix}_close']).astype(int)
     df = df.dropna()
-    return df
+    return df.drop(f"{prefix}_close", axis=1)  # targetの重複を削除する
 
 # 学習と評価
 def train_and_evaluate(df):
@@ -85,21 +85,21 @@ def train_and_evaluate(df):
 
 if __name__ == "__main__":
     file_names = [
-        "data/BTCUSD_15m_20210801_20211231.csv", 
-        "data/BTCUSD_1h_20210801_20211231.csv", 
-        "data/BTCUSD_4h_20210801_20211231.csv"]
+        "data/BTCUSDT_15m_20210801_20211231.csv", 
+        "data/BTCUSDT_1h_20210801_20211231.csv", 
+        "data/BTCUSDT_4h_20210801_20211231.csv"]
     dfs = load_data(file_names)
 
     # 各タイムフレームのデータに対して特徴量エンジニアリングとラベル作成を行う
     processed_dfs = []
     for df in dfs:
-        processed_df = feature_engineering(df)
-        processed_df = create_label(processed_df)
+        prefix = df.columns[0].split('_')[0]  # カラム名のプレフィックスを取得（例：15m）
+        processed_df = feature_engineering(df, prefix)
+        processed_df = create_label(processed_df, prefix)
         processed_dfs.append(processed_df)
 
     # 複数のタイムフレームのデータを結合（インデックスが一致するように注意）
     combined_df = pd.concat(processed_dfs, axis=1).dropna()
-    print(combined_df)
 
     # モデルの学習と評価を行う
     model = train_and_evaluate(combined_df)
