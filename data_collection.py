@@ -69,7 +69,7 @@ def collect_historical_data():
     symbol = 'BTC/USDT'
     timeframes = ['15m', '1h', '4h']
     start_date = datetime(2021, 8, 1)
-    end_date = datetime(2021, 12, 31)
+    end_date = datetime(2022, 12, 31)
     unix_start_date = to_unix_timestamp(start_date)
     unix_end_date = to_unix_timestamp(end_date)
 
