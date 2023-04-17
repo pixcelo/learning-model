@@ -5,7 +5,6 @@ import lightgbm as lgb
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.model_selection import GridSearchCV
 from joblib import dump
-from data_preprocessing import preprocess_data
 
 def train_model(X_train, y_train):
     # LightGBMモデルの選択
