@@ -67,9 +67,9 @@ def save_data_to_csv(data, file_name):
 def collect_historical_data():
     # 取得するデータの設定
     symbol = 'BTC/USDT'
-    timeframes = ['15m', '1h', '4h']
+    timeframes = ['1m', '5m', '15m', '1h', '4h', '1d']
     start_date = datetime(2021, 8, 1)
-    end_date = datetime(2022, 3, 31)
+    end_date = datetime(2023, 3, 31)
     unix_start_date = to_unix_timestamp(start_date)
     unix_end_date = to_unix_timestamp(end_date)
 
