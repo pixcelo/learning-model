@@ -1,7 +1,11 @@
 import numpy as np
 import talib
+from sklearn.preprocessing import StandardScaler
 
 class FeatureEngineer:
+    def __init__(self, df):
+        self.df = df
+
     def feature_engineering(self, df):
         open = df['open'].values
         high = df['high'].values
@@ -10,10 +14,8 @@ class FeatureEngineer:
         volume = df['volume'].values
         hilo = (high + low) / 2
 
-        df['RSI_ST'] = talib.RSI(close)
-        # df['RSI_LOG'] = log_transform_feature(talib.RSI(close))
+        df['RSI'] = talib.RSI(close)
         df['MACD'], _, _ = talib.MACD(close)
-        df['MACD_ST'], _, _ = talib.MACD(close)
         df['ATR'] = talib.ATR(high, low, close)
         df['ADX'] = talib.ADX(high, low, close, timeperiod=14)
         df['ADXR'] = talib.ADXR(high, low, close, timeperiod=14)
@@ -45,13 +47,24 @@ class FeatureEngineer:
         # df = pin_bar_pattern(df)
         # df = triple_top_bottom_pattern(df)
         # df = line_touch_bounce_both_sides(df)
-        df = self.parallel_channel(df)
+        # df = self.parallel_channel(df)
         # df = pivot_points(df)
         # df = fibonacci_retracement_levels(df)
         # df = triple_barrier(df)
         # df = bollinger_band_touch(df)
 
         df = df.dropna()
+
+        # Columns to be standardized
+        columns_to_scale = [
+            "MACD", "ATR", "ADX", "ADXR",
+            "SMA10", "SMA50", "SMA200", "BB_UPPER", "BB_MIDDLE",
+            "BB_LOWER", "STOCH_K", "STOCH_D", "MON"
+        ]
+
+        scaler = StandardScaler()
+        df[columns_to_scale] = scaler.fit_transform(df[columns_to_scale])
+
         df = df.reset_index(drop=True)
 
         return df
