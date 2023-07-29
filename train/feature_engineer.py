@@ -20,8 +20,8 @@ class FeatureEngineer:
         df['ADX'] = talib.ADX(high, low, close, timeperiod=14)
         df['ADXR'] = talib.ADXR(high, low, close, timeperiod=14)
         
-        df['SMA10'] = talib.SMA(close, timeperiod=10)
-        df['SMA50'] = talib.SMA(close, timeperiod=50)
+        # df['SMA10'] = talib.SMA(close, timeperiod=10)
+        # df['SMA50'] = talib.SMA(close, timeperiod=50)
         df['SMA200'] = talib.SMA(close, timeperiod=200)
         
         df['BB_UPPER'], df['BB_MIDDLE'], df['BB_LOWER'] = talib.BBANDS(close)
@@ -31,7 +31,7 @@ class FeatureEngineer:
         df['STOCH_K'], df['STOCH_D'] = talib.STOCH(high, low, close)/close
         df['MON'] = talib.MOM(close, timeperiod=5)
         df['OBV'] = talib.OBV(close, volume)
-        # df['CCI'] = talib.CCI(close, high, low, timeperiod=14)
+        df['CCI'] = talib.CCI(close, high, low, timeperiod=14)
 
         # Calculate high_close_comparison
         df['High_Close_Comparison'] = self.calculate_high_close_comparison(df)
@@ -58,7 +58,7 @@ class FeatureEngineer:
         # Columns to be standardized
         columns_to_scale = [
             "MACD", "ATR", "ADX", "ADXR",
-            "SMA10", "SMA50", "SMA200", "BB_UPPER", "BB_MIDDLE",
+            "SMA200", "BB_UPPER", "BB_MIDDLE",
             "BB_LOWER", "STOCH_K", "STOCH_D", "MON"
         ]
 
