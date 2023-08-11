@@ -5,3 +5,6 @@ csvを学習データとして用いる
 
 ## model
 .pklを学習モデルとして使用
+
+## Reference
+[ta](https://github.com/bukosabino/ta)
